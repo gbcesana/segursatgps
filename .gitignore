@@ -1,0 +1,10 @@
+env/
+templates/
+scripts/
+.vscode/
+segursatgps/dbconnections/*.cnf
+segursatgps/settings/development.py
+segursatgps/settings/production.py
+*.pyc
+*.sqlite3
+*-dev.py
