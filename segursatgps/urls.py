@@ -120,7 +120,7 @@ urlpatterns = [
     path('web/api/geofences/delete-geofence/<int:id>/', geofences_views.delete_geofence),
     path('web/api/geofences/get-groups/', geofences_views.get_geofence_groups),
     path('web/api/geofences/get-group/<int:id>/', geofences_views.get_geofence_group),
-    path('web/api/geofences/create-geofence-group/', geofences_views.create_geofence_group),
+    path('web/api/geofences/create-group/', geofences_views.create_geofence_group),
     path('web/api/geofences/update-group/<int:id>/', geofences_views.update_geofence_group),
     path('web/api/geofences/delete-group/<int:id>/', geofences_views.delete_geofence_group),
     path('web/api/alerts/get-alert/<int:id>/', alerts_views.get_alert),

@@ -234,9 +234,25 @@ def create_geofence_group(request):
             'detail': 'Account does not exist.'
         }
         return Response(error,status=status.HTTP_400_BAD_REQUEST)
+    try:
+        geofences_list = data['geofences']
+        #del data['geofences']
+    except:
+        geofences_list = None
     serializer = GeofenceGroupSerializer(data=data)
     if serializer.is_valid():
-        serializer.create(data,request)
+        geofence_group = serializer.create(data,request)
+        if geofences_list:
+            for item in geofences_list:
+                try:
+                    geofence = Geofence.objects.get(
+                        id = item,
+                        account = request.user.profile.account,
+                    )
+                    geofence_group.geofences.add(geofence)
+                except Exception as e:
+                    print(e)
+        geofence_group.save()
         response = {
             'status':'OK'
         }
@@ -255,6 +271,11 @@ def update_geofence_group(request,id):
             'detail': str(e)
         }
         return Response(error,status=status.HTTP_400_BAD_REQUEST)
+    try:
+        geofences_list = data['geofences']
+        del data['geofences']
+    except:
+        geofences_list = None
     serializer = GeofenceGroupSerializer(geofence_group,data=data,partial=True)
     if serializer.is_valid():
         data = serializer.validated_data
@@ -262,8 +283,22 @@ def update_geofence_group(request,id):
         for key in data:
             if key not in non_updatable_fields:
                 setattr(geofence_group,key,data[key])
+        geofence_group.geofences.clear()
+        if geofences_list:
+            for item in geofences_list:
+                try:
+                    geofence = Geofence.objects.get(
+                        id = item,
+                        account = request.user.profile.account,
+                    )
+                    geofence_group.geofences.add(geofence)
+                except Exception as e:
+                    print(e)
         geofence_group.save()
-        response = GeofenceSerializer(geofence_group,many=False).data
+        #response = GeofenceSerializer(geofence_group,many=False).data
+        response = {
+            'status':'OK'
+        }
         return Response(response,status=status.HTTP_200_OK)
     else:
         error = {'errors':serializer.errors}

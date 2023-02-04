@@ -24,6 +24,7 @@ class GeofenceGroupSerializer(serializers.ModelSerializer):
     def create(self,validated_data,request):
         account = Account.objects.get(id=validated_data['account'])
         validated_data['account'] = account
+        del validated_data['geofences']
         geofence_group = GeofenceGroup.objects.create(**validated_data)
         return geofence_group
     class Meta:
