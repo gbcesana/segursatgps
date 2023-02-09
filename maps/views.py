@@ -33,10 +33,8 @@ def multiple_unit_map_4_view(request):
     except Exception as e:
         disable_navbar = False
     navbar = not disable_navbar
-    number_of_maps = 4
     return render(request,'maps/multiple-unit-map-4.html',{
         'navbar':navbar,
-        'number_of_maps':number_of_maps,
     })
 
 @login_required
@@ -47,10 +45,8 @@ def multiple_unit_map_6_view(request):
     except Exception as e:
         disable_navbar = False
     navbar = not disable_navbar
-    number_of_maps = 6
-    return render(request,'maps/multiple-map.html',{
+    return render(request,'maps/multiple-unit-map-6.html',{
         'navbar':navbar,
-        'number_of_maps':number_of_maps,
     })
 
 @login_required
@@ -61,10 +57,8 @@ def multiple_unit_map_8_view(request):
     except Exception as e:
         disable_navbar = False
     navbar = not disable_navbar
-    number_of_maps = 8
-    return render(request,'maps/multiple-map.html',{
+    return render(request,'maps/multiple-unit-map-8.html',{
         'navbar':navbar,
-        'number_of_maps':number_of_maps,
     })
 
 @login_required
