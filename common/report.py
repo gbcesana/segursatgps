@@ -5,6 +5,7 @@ from statistics import mean,median
 from functools import reduce
 from statistics import mean
 import json
+import rtree
 
 from locations.models import Location
 from geofences.models import Geofence
@@ -1504,39 +1505,69 @@ class Report:
         )
         serializer = locations_serializers.LocationSerializer(locations,many=True)
         locations = serializer.data
+        # CREAR LISTA DE POLIGONOS
+        polygons = []
+        polygon_geofences = []
+        polygon_geofence_indexes = []
+        for geofence in geofences:
+            feature = json.loads(geofence.geojson)['features'][0]
+            if 'radius' not in feature['properties']:
+                s = shape(feature['geometry'])
+                polygons.append(s)
+                polygon_geofences.append(geofence)
+        # FIN - CREAR LISTA DE POLIGONOS
+        # CREAR INDICES
+        idx = rtree.index.Index()
+        for pos, polygon in enumerate(polygons):
+            idx.insert(pos, polygon.bounds)
+        # FIN - CREAR INDICES
         # CALCULAR SI SE ENCUENTRA EN GEOCERCA
         for i in range(len(locations)):
+            # CREA UN PUNTO
             point = Point(locations[i]['longitude'],locations[i]['latitude'])
-            locations[i]['geofence_name'] = None
-            locations[i]['geofence_id'] = None
-            for geofence in geofences:
-                feature = json.loads(geofence.geojson)['features'][0]
+            # FIN - CREA UN PUNTO
+            # Comprueba si el punto está dentro de algún polígono
+            result = list(idx.intersection(point.bounds))
+            #print(result)
+            for r in result:
+                #print(polygon_geofences[r].name+' - '+polygon_geofences[r].description)
+                polygon_geofence_indexes.append(r)
+            #print('---')
+        # FIN - CALCULAR SI SE ENCUENTRA EN GEOCERCA
+        polygon_geofence_indexes = list(dict.fromkeys(polygon_geofence_indexes))
+        polygon_geofences = [ polygon_geofences[pgi] for pgi in polygon_geofence_indexes ]
+        
+        for i in range(len(locations)):
+            point = Point(locations[i]['longitude'],locations[i]['latitude'])
+            locations[i]['geofences'] = []
+            for pg in polygon_geofences:
+                feature = json.loads(pg.geojson)['features'][0]
                 s = shape(feature['geometry'])
                 if s.contains(point):
-                    locations[i]['geofence_name'] = geofence.name
-                    locations[i]['geofence_id'] = geofence.id
-                    break
-        # FIN - CALCULAR SI SE ENCUENTRA EN GEOCERCA
-        # CALCULAR EVENTO DE E/S DE GEOCERCA
-        for i in range(len(locations)):
-            if i != 0:
-                previous_location = locations[i-1]
-                current_location = locations[i]
-                if previous_location['geofence_name'] == None and current_location['geofence_name'] != None:
-                    geofence_event_report.append({
-                        'name': locations[i]['geofence_name'],
-                        'timestamp': locations[i]['timestamp'],
-                        'speed': locations[i]['speed'],
-                        'event': 'INPUT'
-                    })
-                if previous_location['geofence_name'] != None and current_location['geofence_name'] == None:
-                    geofence_event_report.append({
-                        'name': locations[i-1]['geofence_name'],
-                        'timestamp': locations[i]['timestamp'],
-                        'speed': locations[i]['speed'],
-                        'event': 'OUTPUT'
-                    })
-        # FIN - CALCULAR EVENTO DE E/S DE GEOCERCA
+                    locations[i]['geofences'].append(pg.id)
+
+        for pg in polygon_geofences:
+            for i in range(len(locations)):
+                if i != 0:
+                    previous_location = locations[i-1]
+                    current_location = locations[i]
+                    if pg.id not in previous_location['geofences'] and pg.id in current_location['geofences']:
+                        geofence_event_report.append({
+                            'name': pg.name,
+                            'description': pg.description,
+                            'timestamp': locations[i]['timestamp'],
+                            'speed': locations[i]['speed'],
+                            'event': 'INPUT'
+                        })
+                    if pg.id in previous_location['geofences'] and pg.id not in current_location['geofences']:
+                        geofence_event_report.append({
+                            'name': pg.name,
+                            'description': pg.description,
+                            'timestamp': locations[i]['timestamp'],
+                            'speed': locations[i]['speed'],
+                            'event': 'OUTPUT'
+                        })
+
         for i in range(len(geofence_event_report)):
             if i == 0:
                 if geofence_event_report[i]['event'] == 'OUTPUT':
@@ -1609,6 +1640,7 @@ class Report:
                             'duration': duration,
                             'time': str(timedelta(seconds=duration)),
                         })
+        
         return geofence_report
 
     def generate_stop_report(self,unit,initial_timestamp,final_timestamp,geofence_option,discard_time):
