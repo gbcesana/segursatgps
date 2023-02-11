@@ -1,11 +1,12 @@
 from datetime import datetime,timedelta
 from geopy.distance import great_circle
-from shapely.geometry import Point,shape
+from shapely.geometry import Point,Polygon,shape
 from statistics import mean,median
 from functools import reduce
 from statistics import mean
 import json
 import rtree
+import math
 
 from locations.models import Location
 from geofences.models import Geofence
@@ -1509,12 +1510,36 @@ class Report:
         polygons = []
         polygon_geofences = []
         polygon_geofence_indexes = []
+
+        def circular_to_polygon(center_x, center_y, radius, vertex_distance):
+            circumference = 2 * math.pi * radius
+            number_of_vertices = int(circumference / vertex_distance)
+            vertex_distance = circumference / number_of_vertices
+            polygon_points = []
+            for i in range(number_of_vertices + 1):
+                angle = 2 * math.pi * i / number_of_vertices
+                x = center_x + radius * math.cos(angle)
+                y = center_y + radius * math.sin(angle)
+                polygon_points.append((x, y))
+            return Polygon(polygon_points)
+
         for geofence in geofences:
             feature = json.loads(geofence.geojson)['features'][0]
-            if 'radius' not in feature['properties']:
+            if 'radius' in feature['properties']:
+                polygon = circular_to_polygon(
+                    feature['geometry']['coordinates'][0],
+                    feature['geometry']['coordinates'][1],
+                    feature['properties']['radius'],
+                    2
+                )
+                print(polygon)
+                polygons.append(polygon)
+                polygon_geofences.append(geofence)
+            else:
                 s = shape(feature['geometry'])
                 polygons.append(s)
                 polygon_geofences.append(geofence)
+
         # FIN - CREAR LISTA DE POLIGONOS
         # CREAR INDICES
         idx = rtree.index.Index()
