@@ -7,6 +7,7 @@ from statistics import mean
 import json
 import rtree
 import math
+import geopy
 
 from locations.models import Location
 from geofences.models import Geofence
@@ -1509,17 +1510,15 @@ class Report:
         # CREAR LISTA DE POLIGONOS
         polygons = []
         polygon_geofences = []
-        polygon_geofence_indexes = []
 
-        def circular_to_polygon(center_x, center_y, radius, vertex_distance):
-            circumference = 2 * math.pi * radius
-            number_of_vertices = int(circumference / vertex_distance)
-            vertex_distance = circumference / number_of_vertices
+        def circular_to_polygon(center_lat, center_lon, radius, vertex_distance):
+            number_of_vertices = int(2 * math.pi * radius / vertex_distance)
+            vertex_distance = 2 * math.pi * radius / number_of_vertices
             polygon_points = []
             for i in range(number_of_vertices + 1):
                 angle = 2 * math.pi * i / number_of_vertices
-                x = center_x + radius * math.cos(angle)
-                y = center_y + radius * math.sin(angle)
+                x = center_lon + (radius / 1000) / 111.32 * math.cos(angle)
+                y = center_lat + (radius / 1000) / 111.32 * math.sin(angle)
                 polygon_points.append((x, y))
             return Polygon(polygon_points)
 
@@ -1527,8 +1526,8 @@ class Report:
             feature = json.loads(geofence.geojson)['features'][0]
             if 'radius' in feature['properties']:
                 polygon = circular_to_polygon(
-                    feature['geometry']['coordinates'][0],
                     feature['geometry']['coordinates'][1],
+                    feature['geometry']['coordinates'][0],
                     feature['properties']['radius'],
                     2
                 )
@@ -1547,6 +1546,7 @@ class Report:
             idx.insert(pos, polygon.bounds)
         # FIN - CREAR INDICES
         # CALCULAR SI SE ENCUENTRA EN GEOCERCA
+        polygon_geofence_indexes = []
         for i in range(len(locations)):
             # CREA UN PUNTO
             point = Point(locations[i]['longitude'],locations[i]['latitude'])
