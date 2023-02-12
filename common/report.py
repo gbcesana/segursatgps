@@ -1531,7 +1531,6 @@ class Report:
                     feature['properties']['radius'],
                     2
                 )
-                print(polygon)
                 polygons.append(polygon)
                 polygon_geofences.append(geofence)
             else:
@@ -1548,29 +1547,18 @@ class Report:
         # CALCULAR SI SE ENCUENTRA EN GEOCERCA
         polygon_geofence_indexes = []
         for i in range(len(locations)):
-            # CREA UN PUNTO
             point = Point(locations[i]['longitude'],locations[i]['latitude'])
-            # FIN - CREA UN PUNTO
+            locations[i]['geofences'] = []
             # Comprueba si el punto está dentro de algún polígono
             result = list(idx.intersection(point.bounds))
-            #print(result)
             for r in result:
-                #print(polygon_geofences[r].name+' - '+polygon_geofences[r].description)
-                polygon_geofence_indexes.append(r)
-            #print('---')
+                if point.within(polygons[r]):
+                    polygon_geofence_indexes.append(r)
+                    locations[i]['geofences'].append(polygon_geofences[r].id)
         # FIN - CALCULAR SI SE ENCUENTRA EN GEOCERCA
         polygon_geofence_indexes = list(dict.fromkeys(polygon_geofence_indexes))
         polygon_geofences = [ polygon_geofences[pgi] for pgi in polygon_geofence_indexes ]
         
-        for i in range(len(locations)):
-            point = Point(locations[i]['longitude'],locations[i]['latitude'])
-            locations[i]['geofences'] = []
-            for pg in polygon_geofences:
-                feature = json.loads(pg.geojson)['features'][0]
-                s = shape(feature['geometry'])
-                if s.contains(point):
-                    locations[i]['geofences'].append(pg.id)
-
         for pg in polygon_geofences:
             for i in range(len(locations)):
                 if i != 0:
