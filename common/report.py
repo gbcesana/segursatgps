@@ -1558,7 +1558,7 @@ class Report:
         # FIN - CALCULAR SI SE ENCUENTRA EN GEOCERCA
         polygon_geofence_indexes = list(dict.fromkeys(polygon_geofence_indexes))
         polygon_geofences = [ polygon_geofences[pgi] for pgi in polygon_geofence_indexes ]
-        
+
         for pg in polygon_geofences:
             for i in range(len(locations)):
                 if i != 0:
@@ -1566,14 +1566,16 @@ class Report:
                     current_location = locations[i]
                     if pg.id not in previous_location['geofences'] and pg.id in current_location['geofences']:
                         geofence_event_report.append({
+                            'id': pg.id,
                             'name': pg.name,
                             'description': pg.description,
                             'timestamp': locations[i]['timestamp'],
                             'speed': locations[i]['speed'],
                             'event': 'INPUT'
                         })
-                    if pg.id in previous_location['geofences'] and pg.id not in current_location['geofences']:
+                    elif pg.id in previous_location['geofences'] and pg.id not in current_location['geofences']:
                         geofence_event_report.append({
+                            'id': pg.id,
                             'name': pg.name,
                             'description': pg.description,
                             'timestamp': locations[i]['timestamp'],
@@ -1581,79 +1583,85 @@ class Report:
                             'event': 'OUTPUT'
                         })
 
-        for i in range(len(geofence_event_report)):
-            if i == 0:
-                if geofence_event_report[i]['event'] == 'OUTPUT':
-                    duration = geofence_event_report[i]['timestamp'] - initial_timestamp
-                    geofence_report.append({
-                        'unit_name':unit.name,
-                        'unit_description':unit.description,
-                        'geofence_name': geofence_event_report[i]['name'],
-                        'initial_timestamp': initial_timestamp,
-                        'initial_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
-                            initial_timestamp,"%d/%m/%Y %H:%M:%S"),
-                        'initial_speed': 'N/D',
-                        'final_timestamp': geofence_event_report[i]['timestamp'],
-                        'final_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
-                            geofence_event_report[i]['timestamp'],"%d/%m/%Y %H:%M:%S"),
-                        'final_speed': geofence_event_report[i]['speed'],
-                        'duration': duration,
-                        'time': str(timedelta(seconds=duration)),
-                    })
-                elif i == len(geofence_event_report)-1 and geofence_event_report[i]['event'] == 'INPUT':
-                    duration = final_timestamp - geofence_event_report[i]['timestamp']
-                    geofence_report.append({
-                        'unit_name':unit.name,
-                        'unit_description':unit.description,
-                        'geofence_name': geofence_event_report[i]['name'],
-                        'initial_timestamp': geofence_event_report[i]['timestamp'],
-                        'initial_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
-                            geofence_event_report[i]['timestamp'],"%d/%m/%Y %H:%M:%S"),
-                        'initial_speed': geofence_event_report[i]['speed'],
-                        'final_timestamp': final_timestamp,
-                        'final_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
-                            final_timestamp,"%d/%m/%Y %H:%M:%S"),
-                        'final_speed': 'N/D',
-                        'duration': duration,
-                        'time': str(timedelta(seconds=duration)),
-                    })
-            else:
-                if i == len(geofence_event_report)-1 and geofence_event_report[i]['event'] == 'INPUT':
-                    duration = final_timestamp - geofence_event_report[i]['timestamp']
-                    geofence_report.append({
-                        'unit_name':unit.name,
-                        'unit_description':unit.description,
-                        'geofence_name': geofence_event_report[i]['name'],
-                        'initial_timestamp': geofence_event_report[i]['timestamp'],
-                        'initial_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
-                            geofence_event_report[i]['timestamp'],"%d/%m/%Y %H:%M:%S"),
-                        'initial_speed': geofence_event_report[i]['speed'],
-                        'final_timestamp': final_timestamp,
-                        'final_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
-                            final_timestamp,"%d/%m/%Y %H:%M:%S"),
-                        'final_speed': 'N/D',
-                        'duration': duration,
-                        'time': str(timedelta(seconds=duration)),
-                    })
-                else:
-                    if geofence_event_report[i-1]['event'] == 'INPUT' and  geofence_event_report[i]['event'] == 'OUTPUT':
-                        duration = geofence_event_report[i]['timestamp'] - geofence_event_report[i-1]['timestamp']
+        for pg in polygon_geofences:
+            geofence_event_report_tmp = ([
+                ger
+                for ger in geofence_event_report 
+                if pg.id == ger['id']
+            ])
+            for i in range(len(geofence_event_report_tmp)):
+                if i == 0:
+                    if geofence_event_report_tmp[i]['event'] == 'OUTPUT':
+                        duration = geofence_event_report_tmp[i]['timestamp'] - initial_timestamp
                         geofence_report.append({
                             'unit_name':unit.name,
                             'unit_description':unit.description,
-                            'geofence_name': geofence_event_report[i]['name'],
-                            'initial_timestamp': geofence_event_report[i-1]['timestamp'],
+                            'geofence_name': geofence_event_report_tmp[i]['name'],
+                            'initial_timestamp': initial_timestamp,
                             'initial_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
-                                geofence_event_report[i-1]['timestamp'],"%d/%m/%Y %H:%M:%S"),
-                            'initial_speed': geofence_event_report[i-1]['speed'],
-                            'final_timestamp': geofence_event_report[i]['timestamp'],
-                            'final_datetime':time_conversor.convert_utc_timestamp_to_local_datetimestr(
-                                geofence_event_report[i]['timestamp'],"%d/%m/%Y %H:%M:%S"),
-                            'final_speed': geofence_event_report[i]['speed'],
+                                initial_timestamp,"%d/%m/%Y %H:%M:%S"),
+                            'initial_speed': 'N/D',
+                            'final_timestamp': geofence_event_report_tmp[i]['timestamp'],
+                            'final_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
+                                geofence_event_report_tmp[i]['timestamp'],"%d/%m/%Y %H:%M:%S"),
+                            'final_speed': geofence_event_report_tmp[i]['speed'],
                             'duration': duration,
                             'time': str(timedelta(seconds=duration)),
                         })
-        
+                    elif i == len(geofence_event_report_tmp)-1 and geofence_event_report_tmp[i]['event'] == 'INPUT':
+                        duration = final_timestamp - geofence_event_report_tmp[i]['timestamp']
+                        geofence_report.append({
+                            'unit_name':unit.name,
+                            'unit_description':unit.description,
+                            'geofence_name': geofence_event_report_tmp[i]['name'],
+                            'initial_timestamp': geofence_event_report_tmp[i]['timestamp'],
+                            'initial_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
+                                geofence_event_report_tmp[i]['timestamp'],"%d/%m/%Y %H:%M:%S"),
+                            'initial_speed': geofence_event_report_tmp[i]['speed'],
+                            'final_timestamp': final_timestamp,
+                            'final_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
+                                final_timestamp,"%d/%m/%Y %H:%M:%S"),
+                            'final_speed': 'N/D',
+                            'duration': duration,
+                            'time': str(timedelta(seconds=duration)),
+                        })
+                else:
+                    if i == len(geofence_event_report_tmp)-1 and geofence_event_report_tmp[i]['event'] == 'INPUT':
+                        duration = final_timestamp - geofence_event_report_tmp[i]['timestamp']
+                        geofence_report.append({
+                            'unit_name':unit.name,
+                            'unit_description':unit.description,
+                            'geofence_name': geofence_event_report_tmp[i]['name'],
+                            'initial_timestamp': geofence_event_report_tmp[i]['timestamp'],
+                            'initial_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
+                                geofence_event_report_tmp[i]['timestamp'],"%d/%m/%Y %H:%M:%S"),
+                            'initial_speed': geofence_event_report_tmp[i]['speed'],
+                            'final_timestamp': final_timestamp,
+                            'final_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
+                                final_timestamp,"%d/%m/%Y %H:%M:%S"),
+                            'final_speed': 'N/D',
+                            'duration': duration,
+                            'time': str(timedelta(seconds=duration)),
+                        })
+                    else:
+                        if geofence_event_report_tmp[i-1]['event'] == 'INPUT' and  geofence_event_report_tmp[i]['event'] == 'OUTPUT':
+                            duration = geofence_event_report_tmp[i]['timestamp'] - geofence_event_report_tmp[i-1]['timestamp']
+                            geofence_report.append({
+                                'unit_name':unit.name,
+                                'unit_description':unit.description,
+                                'geofence_name': geofence_event_report_tmp[i]['name'],
+                                'initial_timestamp': geofence_event_report_tmp[i-1]['timestamp'],
+                                'initial_datetime': time_conversor.convert_utc_timestamp_to_local_datetimestr(
+                                    geofence_event_report_tmp[i-1]['timestamp'],"%d/%m/%Y %H:%M:%S"),
+                                'initial_speed': geofence_event_report_tmp[i-1]['speed'],
+                                'final_timestamp': geofence_event_report_tmp[i]['timestamp'],
+                                'final_datetime':time_conversor.convert_utc_timestamp_to_local_datetimestr(
+                                    geofence_event_report_tmp[i]['timestamp'],"%d/%m/%Y %H:%M:%S"),
+                                'final_speed': geofence_event_report_tmp[i]['speed'],
+                                'duration': duration,
+                                'time': str(timedelta(seconds=duration)),
+                            })
+             
         return geofence_report
 
     def generate_stop_report(self,unit,initial_timestamp,final_timestamp,geofence_option,discard_time):
