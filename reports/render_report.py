@@ -61,6 +61,7 @@ class RenderReport:
                     unit,
                     initial_timestamp,
                     final_timestamp,
+                    data['geofence_option'],
                 ),
                 status=status.HTTP_200_OK
             )

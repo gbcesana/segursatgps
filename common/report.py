@@ -24,6 +24,17 @@ position_store = PositionStore()
 
 class Report:
 
+    def circular_to_polygon(self, center_lat, center_lon, radius, vertex_distance):
+            number_of_vertices = int(2 * math.pi * radius / vertex_distance)
+            vertex_distance = 2 * math.pi * radius / number_of_vertices
+            polygon_points = []
+            for i in range(number_of_vertices + 1):
+                angle = 2 * math.pi * i / number_of_vertices
+                x = center_lon + (radius / 1000) / 111.32 * math.cos(angle)
+                y = center_lat + (radius / 1000) / 111.32 * math.sin(angle)
+                polygon_points.append((x, y))
+            return Polygon(polygon_points)
+
     def calculate_unit_ignition_events(self,unit,locations):
         ignition_events = []
         device_reader = DeviceReader(unit)
@@ -341,8 +352,7 @@ class Report:
             })
         return detailed_report
     """
-    def generate_detailed_report(self,unit,initial_timestamp,final_timestamp):
-        geofence_option = True
+    def generate_detailed_report(self,unit,initial_timestamp,final_timestamp,geofence_option):
         locations = Location.objects.using('history_db_replica').filter(
             unitid=unit.id,
             timestamp__gte=initial_timestamp,
@@ -385,19 +395,47 @@ class Report:
                 ).km
                 data[i]['distance'] = round(distance,2)
         if geofence_option:
+            # CREAR LISTA DE POLIGONOS
+            polygons = []
+            polygon_geofences = []
             geofences = Geofence.objects.filter(account=unit.account)
-            for i in range(len(data)):
-                matching_geofences = []
-                point = Point(data[i]['longitude'],data[i]['latitude'])
-                for geofence in geofences:
-                    feature = json.loads(geofence.geojson)['features'][0]
-                    s = shape(feature['geometry'])
-                    if s.contains(point):
-                        matching_geofences.append(geofence.name)
-                if len(matching_geofences) == 0:
-                    data[i]['geofences'] = 'N/D'
+            for geofence in geofences:
+                feature = json.loads(geofence.geojson)['features'][0]
+                if 'radius' in feature['properties']:
+                    polygon = self.circular_to_polygon(
+                        feature['geometry']['coordinates'][1],
+                        feature['geometry']['coordinates'][0],
+                        feature['properties']['radius'],
+                        2
+                    )
+                    polygons.append(polygon)
+                    polygon_geofences.append(geofence)
                 else:
-                    data[i]['geofences'] = ', '.join(matching_geofences)    
+                    s = shape(feature['geometry'])
+                    polygons.append(s)
+                    polygon_geofences.append(geofence)
+            # FIN - CREAR LISTA DE POLIGONOS
+            # CREAR INDICES
+            idx = rtree.index.Index()
+            for pos, polygon in enumerate(polygons):
+                idx.insert(pos, polygon.bounds)
+            # FIN - CREAR INDICES
+            # CALCULAR SI SE ENCUENTRA EN GEOCERCA
+            polygon_geofence_indexes = []
+            for i in range(len(data)):
+                point = Point(data[i]['longitude'],data[i]['latitude'])
+                data[i]['geofences'] = []
+                # Comprueba si el punto está dentro de algún polígono
+                result = list(idx.intersection(point.bounds))
+                for r in result:
+                    if point.within(polygons[r]):
+                        polygon_geofence_indexes.append(r)
+                        data[i]['geofences'].append(polygon_geofences[r].name)
+                if len(data[i]['geofences']) > 0:
+                    data[i]['geofences'] = ', '.join(data[i]['geofences'])
+                else:
+                    data[i]['geofences'] = ''
+            # FIN - CALCULAR SI SE ENCUENTRA EN GEOCERCA
         return data
 
     def generate_extended_detailed_report(self,unit,initial_timestamp,final_timestamp):
@@ -1511,21 +1549,10 @@ class Report:
         polygons = []
         polygon_geofences = []
 
-        def circular_to_polygon(center_lat, center_lon, radius, vertex_distance):
-            number_of_vertices = int(2 * math.pi * radius / vertex_distance)
-            vertex_distance = 2 * math.pi * radius / number_of_vertices
-            polygon_points = []
-            for i in range(number_of_vertices + 1):
-                angle = 2 * math.pi * i / number_of_vertices
-                x = center_lon + (radius / 1000) / 111.32 * math.cos(angle)
-                y = center_lat + (radius / 1000) / 111.32 * math.sin(angle)
-                polygon_points.append((x, y))
-            return Polygon(polygon_points)
-
         for geofence in geofences:
             feature = json.loads(geofence.geojson)['features'][0]
             if 'radius' in feature['properties']:
-                polygon = circular_to_polygon(
+                polygon = self.circular_to_polygon(
                     feature['geometry']['coordinates'][1],
                     feature['geometry']['coordinates'][0],
                     feature['properties']['radius'],
@@ -1537,7 +1564,6 @@ class Report:
                 s = shape(feature['geometry'])
                 polygons.append(s)
                 polygon_geofences.append(geofence)
-
         # FIN - CREAR LISTA DE POLIGONOS
         # CREAR INDICES
         idx = rtree.index.Index()
