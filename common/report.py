@@ -394,6 +394,7 @@ class Report:
                     ),
                 ).km
                 data[i]['distance'] = round(distance,2)
+            data[i]['geofences'] = 'N/D'
         if geofence_option:
             # CREAR LISTA DE POLIGONOS
             polygons = []
@@ -434,7 +435,7 @@ class Report:
                 if len(data[i]['geofences']) > 0:
                     data[i]['geofences'] = ', '.join(data[i]['geofences'])
                 else:
-                    data[i]['geofences'] = ''
+                    data[i]['geofences'] = 'N/D'
             # FIN - CALCULAR SI SE ENCUENTRA EN GEOCERCA
         return data
 
