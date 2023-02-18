@@ -1,6 +1,10 @@
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 
+from rest_framework import status
+from rest_framework.renderers import JSONRenderer
+from rest_framework.response import Response
+
 import re
 
 class ManagementForbiddenMiddleware:
@@ -17,8 +21,22 @@ class ManagementForbiddenMiddleware:
         # Code to be executed for each request/response after
         # the view is called.
         if re.search("^/management*", request.get_full_path()):
-            if response.status_code == 403:
+            if request.user.profile.is_superadmin == False:
                 logout(request)
                 return redirect('login')
+        elif re.search("^/web/api/management*", request.get_full_path()):
+            if request.user.profile.is_superadmin == False:
+                error = {
+                    'detail':'Largate de aca'
+                }
+                response = Response(
+                    error,
+                    status=status.HTTP_403_FORBIDDEN
+                )
+                response.accepted_renderer = JSONRenderer()
+                response.accepted_media_type = "application/json"
+                response.renderer_context = {}
+                response.render()
+                return response
 
         return response
