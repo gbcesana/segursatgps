@@ -91,12 +91,7 @@ def login_view(request):
                     if next:
                         return redirect(next)
                     else:
-                        if mode == '0':
-                            return redirect('map')
-                        elif mode == '1':
-                            return redirect('main')
-                        else:
-                            return redirect('map')
+                        return redirect('map')
                 logout(request)
                 return render(request,'users/login.html',{
                     'error':'No existe el perfil de usuario, contactese con el administrador',
