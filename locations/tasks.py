@@ -226,8 +226,8 @@ def process_location_in_background(data):
                         print(f"ERROR SUTRAN: {str(e)}")
                 # FIN - INSERTAR EN LA TABLA SUTRAN
                 # INSERTAR DATA EN POSITIONDB
-                position_store = PositionStore()
-                position_store.write(data)
+                #position_store = PositionStore()
+                #position_store.write(data)
                 # FIN - INSERTAR DATA EN POSITIONDB
                 # DETECTAR ALERTAS
                 alert_reader = AlertReader(unit)
@@ -298,8 +298,8 @@ def process_location_in_background(data):
                             data2['unit_id'] = unit.child.id
                             data2['account_id'] = unit.child.account.id
                             data2['account_name'] = unit.child.account.name
-                            position_store = PositionStore()
-                            position_store.write(data2)
+                            #position_store = PositionStore()
+                            #position_store.write(data2)
                             # FIN - INSERTAR DATA EN POSITIONDB - HIJO
                 # FIN - REPLICA INTERNA
                 # PROCESAR ALERTAS PARA LA CENTRAL
@@ -481,8 +481,8 @@ def process_thirdparty_location_in_background(data):
                 print(e)
             # FIN - INSERTAR UBICACION EN EL HISTORICO
             # INSERTAR DATA EN POSITIONDB
-            position_store = PositionStore()
-            position_store.write(data)
+            #position_store = PositionStore()
+            #position_store.write(data)
             # FIN - INSERTAR DATA EN POSITIONDB
             # DETECTAR ALERTAS
             alert_reader = AlertReader(unit)
