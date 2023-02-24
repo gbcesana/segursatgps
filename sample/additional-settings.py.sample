@@ -8,7 +8,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('172.31.79.137', 6379)],
+            "hosts": [('localhost', 6379)],
         },
     },
 }
@@ -32,16 +32,16 @@ CORS_ORIGIN_ALLOW = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
-    "https://desarrollo.segursat.com",
-    "http://desarrollo.segursat.com",
+    "https://dev.example.com",
+    "http://dev.example.com",
     "http://localhost:3000",
 ]
 
 # GEOCODING SERVER
-GEOCODING_ENABLED = True
-GEOCODING_SERVER = '172.31.72.75'
+GEOCODING_ENABLED = False
+GEOCODING_SERVER = 'x.x.x.x' # NOMINATIM SERVER DOMAIN OR IP ADDRESS
 GEOCODING_TIMEOUT = 10
 
 # MULTILOGIN
 MOBILE_LOGIN_SUBDOMAIN = 'mobile'
-MANAGEMENT_LOGIN_SUBDOMAIN = 'mgmt'
+MANAGEMENT_LOGIN_SUBDOMAIN = 'management'
